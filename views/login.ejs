@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đăng Nhập</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+      .container {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        width: 300px;
+      }
+      h2 {
+        text-align: center;
+        color: #333;
+      }
+      input[type="email"],
+      input[type="password"] {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        background-color: #87348f;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background-color: #722877;
+      }
+      .link {
+        text-align: center;
+        margin-top: 10px;
+      }
+      .link a {
+        color: #87348f;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Đăng Nhập</h2>
+      <form id="loginForm">
+        <input type="email" name="email" placeholder="Địa chỉ Email" required />
+        <input
+          type="password"
+          name="password"
+          placeholder="Mật Khẩu"
+          required
+        />
+        <button type="submit">Đăng Nhập</button>
+      </form>
+      <div class="link">
+        <p>Chưa có tài khoản? <a href="register">Đăng Ký</a></p>
+      </div>
+    </div>
+
+    <script>
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const formData = new FormData(event.target);
+          const data = Object.fromEntries(formData.entries());
+
+          try {
+            const response = await fetch(
+              "http://localhost:3000/api/v1/auth/login",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+              }
+            );
+
+            if (response.ok) {
+              const result = await response.json();
+              localStorage.setItem("fullName", result.data.fullName);
+              window.location.href = "http://localhost:3000";
+            } else {
+              const result = await response.json(); // Lấy thông báo lỗi từ server
+              alert(result.message);
+            }
+          } catch (error) {
+            console.error("Error:", error);
+            alert("Đã xảy ra lỗi trong quá trình đăng nhập.");
+          }
+        });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blog</title>
+    <style>
+      .post {
+        border: 1px solid #ddd;
+        padding: 10px;
+        margin-bottom: 20px;
+      }
+      .post .post-header img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        margin-right: 10px;
+      }
+      .status-image {
+        max-width: 100%;
+        margin-top: 10px;
+      }
+      .post-header {
+        display: flex;
+        align-items: center;
+      }
+      .post h3 {
+        margin: 0;
+      }
+      .comment-section {
+        margin-top: 20px;
+      }
+      .comment-section ul {
+        list-style-type: none;
+        padding: 0;
+      }
+      .comment-section li {
+        padding: 5px;
+        border-bottom: 1px solid #ddd;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="auth-links"></div>
+    <div id="posts-container"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io("http://localhost:3000");
+      const authLinks = document.getElementById("auth-links");
+
+      function updateAuthLinks() {
+        const name = localStorage.getItem("fullName") || "Guest";
+        if (name !== "Guest") {
+          authLinks.innerHTML = `<span>Welcome, ${name}</span> | <a href="#" id="logout">Logout</a>`;
+          document.getElementById("logout").addEventListener("click", () => {
+            localStorage.removeItem("fullName");
+            updateAuthLinks();
+          });
+        } else {
+          authLinks.innerHTML = `<a href="/login">Login</a> | <a href="/signup">Signup</a>`;
+        }
+      }
+
+      updateAuthLinks();
+
+      // Fetch posts from the API
+      async function fetchPosts() {
+        try {
+          const response = await fetch("http://localhost:3000/api/v1/post");
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          const posts = await response.json();
+          displayPosts(posts);
+        } catch (error) {
+          console.error(
+            "There has been a problem with your fetch operation:",
+            error
+          );
+        }
+      }
+
+      // Display posts on the page
+      function displayPosts(posts) {
+        const postsContainer = document.getElementById("posts-container");
+        posts.forEach((post) => {
+          const postElement = document.createElement("div");
+          postElement.className = "post";
+          postElement.innerHTML = `
+            <div class="post-header">
+              <img src="https://picsum.photos/200" alt="User Profile Picture" />
+              <h3>${post.title}</h3>
+            </div>
+            <p>${post.content}</p>
+            <img class="status-image" src="https://picsum.photos/200" alt="Status Image" />
+            <div class="comment-section">
+              <h4>Comments</h4>
+              <ul class="listComment"></ul>
+              <input class="valueComment" type="text" placeholder="Write a comment..." />
+              <button class="button__comment">Comment</button>
+            </div>
+          `;
+          postsContainer.appendChild(postElement);
+
+          // Add event listener for the comment button
+          const buttonComment = postElement.querySelector(".button__comment");
+          const valueComment = postElement.querySelector(".valueComment");
+          const listComment = postElement.querySelector(".listComment");
+
+          buttonComment.addEventListener("click", () => {
+            const name = localStorage.getItem("fullName") || "Guest";
+            const comment = `${name}: ${valueComment.value}`;
+            socket.emit("Client-send-data", comment);
+            valueComment.value = ""; // Clear input after sending
+          });
+        });
+      }
+
+      // Fetch posts when the page loads
+      fetchPosts();
+
+      socket.on("Server-send-data", (dataFromClient) => {
+        // Assume all comments go to the first post's comment section
+        const firstListComment = document.querySelector(".listComment");
+        const newComment = document.createElement("li");
+        newComment.textContent = dataFromClient;
+        firstListComment.appendChild(newComment);
+      });
+    </script>
+  </body>
+</html>
