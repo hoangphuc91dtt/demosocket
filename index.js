@@ -29,7 +29,7 @@ io.on("connection", (socket) => {
 
   // 1.2 Nhan data tu Client
   socket.on("Client-send-data", (dataComment) => {
-    console.log(dataComment);
+    console.log("dataComment", dataComment);
     // 2.1 Log comment tu Client cho Client #
     io.sockets.emit("Server-send-data", dataComment);
   });

@@ -74,10 +74,7 @@
           const posts = await response.json();
           displayPosts(posts);
         } catch (error) {
-          console.error(
-            "There has been a problem with your fetch operation:",
-            error
-          );
+          console.error(error);
         }
       }
 
@@ -86,32 +83,42 @@
         const postsContainer = document.getElementById("posts-container");
         posts.forEach((post) => {
           const postElement = document.createElement("div");
-          postElement.className = "post";
+          console.log(post);
+          postElement.className = `post ${post._id}`;
           postElement.innerHTML = `
             <div class="post-header">
               <img src="https://picsum.photos/200" alt="User Profile Picture" />
               <h3>${post.title}</h3>
-            </div>
+              </div>
             <p>${post.content}</p>
             <img class="status-image" src="https://picsum.photos/200" alt="Status Image" />
             <div class="comment-section">
               <h4>Comments</h4>
-              <ul class="listComment"></ul>
+              <ul class="listComment${post._id}">
+               ${post.comments
+                 .map(
+                   (comment) =>
+                     `<li>${comment.username}: ${comment.content}</li>`
+                 )
+                 .join("")}
+                </ul>
               <input class="valueComment" type="text" placeholder="Write a comment..." />
-              <button class="button__comment">Comment</button>
+              <button class="button__comment${post._id}">Comment</button>
             </div>
           `;
           postsContainer.appendChild(postElement);
 
           // Add event listener for the comment button
-          const buttonComment = postElement.querySelector(".button__comment");
+          const buttonComment = postElement.querySelector(
+            `.button__comment${post._id}`
+          );
           const valueComment = postElement.querySelector(".valueComment");
           const listComment = postElement.querySelector(".listComment");
 
           buttonComment.addEventListener("click", () => {
             const name = localStorage.getItem("fullName") || "Guest";
             const comment = `${name}: ${valueComment.value}`;
-            socket.emit("Client-send-data", comment);
+            socket.emit("Client-send-data", { comment, postId: post._id });
             valueComment.value = ""; // Clear input after sending
           });
         });
@@ -119,13 +126,41 @@
 
       // Fetch posts when the page loads
       fetchPosts();
+      // Trong socket.on('Server-send-data',...) như đã làm ở trên
+      socket.on("Server-send-data", async (dataFromClient) => {
+        const { comment, postId } = dataFromClient; // Nhận comment và postId từ server
+        const listComment = document.querySelector(`.listComment${postId}`);
+        if (listComment) {
+          const newComment = document.createElement("li");
+          newComment.textContent = comment;
+          listComment.appendChild(newComment);
 
-      socket.on("Server-send-data", (dataFromClient) => {
-        // Assume all comments go to the first post's comment section
-        const firstListComment = document.querySelector(".listComment");
-        const newComment = document.createElement("li");
-        newComment.textContent = dataFromClient;
-        firstListComment.appendChild(newComment);
+          // Tách tên và nội dung của comment
+          const [fullName, content] = comment.split(": ");
+
+          // Gửi yêu cầu PUT để cập nhật comment vào DB
+          try {
+            const response = await fetch(
+              `http://localhost:3000/api/v1/post/${postId}/comments`,
+              {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ fullName, content })
+              }
+            );
+
+            if (!response.ok) {
+              throw new Error("Failed to update comment in the database");
+            }
+
+            const updatedPost = await response.json();
+            console.log("Updated Post:", updatedPost);
+          } catch (error) {
+            console.error("Error updating comment in the database:", error);
+          }
+        }
       });
     </script>
   </body>

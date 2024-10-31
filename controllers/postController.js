@@ -72,3 +72,33 @@ exports.deletePost = async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 };
+
+exports.addComment = async (req, res) => {
+  const { postId } = req.params;
+  const { fullName, content } = req.body;
+
+  try {
+    // Tìm bài viết theo ID
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Thêm comment vào mảng comments của bài viết
+    const newComment = { fullName, content };
+    post.comments.push(newComment);
+
+    // Lưu bài viết đã cập nhật
+    await post.save();
+
+    res.status(200).json({
+      message: "Comment added successfully",
+      comments: post.comments
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+      error
+    });
+  }
+};
